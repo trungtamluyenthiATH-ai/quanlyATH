@@ -169,7 +169,22 @@ const requirePermission = (chucNang, hanhDong) => {
 
 
 // =========================================================================
-// 3. APIS - PHÂN HỆ: QUẢN TRỊ & PHÂN QUYỀN (ADMINISTRATIVE APIS)
+// 3. APIS - ĐƯỜNG DẪN MẶC ĐỊNH (DEFAULT ROUTE)
+// =========================================================================
+
+// Route mặc định kiểm tra tình trạng hoạt động để tránh lỗi 404 khi truy cập URL gốc
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Hệ thống Backend ATH Test Prep Center đang hoạt động ổn định!',
+    status: 'ONLINE',
+    timestamp: new Date()
+  });
+});
+
+
+// =========================================================================
+// 4. APIS - PHÂN HỆ: QUẢN TRỊ & PHÂN QUYỀN (ADMINISTRATIVE APIS)
 // =========================================================================
 
 // Đăng nhập và cấp phát token JWT
@@ -241,7 +256,7 @@ app.put('/api/accounts/:id/status', authenticateToken, requirePermission('QUAN_T
 
 
 // =========================================================================
-// 4. APIS - PHÂN HỆ: QUẢN LÝ GIÁO VIÊN (TEACHERS APIS - BẢO VỆ CHẶT CHẼ)
+// 5. APIS - PHÂN HỆ: QUẢN LÝ GIÁO VIÊN (TEACHERS APIS - BẢO VỆ CHẶT CHẼ)
 // =========================================================================
 
 /**
@@ -318,8 +333,6 @@ app.post('/api/teachers', authenticateToken, requirePermission('GIAO_VIEN', 'the
 
 /**
  * Cập nhật thông tin Giáo viên
- * Yêu cầu quyền "Cập nhật" (sua) ở danh mục "Giáo viên". 
- * Nếu user không có quyền này, requirePermission('GIAO_VIEN', 'sua') sẽ chặn và trả về lỗi 403.
  */
 app.put('/api/teachers/:id', authenticateToken, requirePermission('GIAO_VIEN', 'sua'),
   upload.fields([{ name: 'file_anh_the', maxCount: 1 }, { name: 'file_hop_dong', maxCount: 1 }]),
@@ -412,7 +425,7 @@ app.delete('/api/teachers/:id', authenticateToken, requirePermission('GIAO_VIEN'
 
 
 // =========================================================================
-// 5. APIS - PHÂN HỆ: QUẢN LÝ HỌC VIÊN, LỚP HỌC, MÔN HỌC, HỒ SƠ & DASHBOARD
+// 6. APIS - PHÂN HỆ: QUẢN LÝ HỌC VIÊN, LỚP HỌC, MÔN HỌC, HỒ SƠ & DASHBOARD
 // =========================================================================
 
 // (Các APIs Học viên, Lớp học, Môn học, Hồ sơ, Dashboard được giữ vững hoạt động ổn định...)
@@ -462,7 +475,7 @@ app.get('/api/students', authenticateToken, requirePermission('HOC_VIEN', 'xem')
     query += ' ORDER BY h.id DESC';
     const { rows: students } = await pool.query(query, queryParams);
     for (let student of students) {
-      const { rows: classes } = await pool.query("SELECT l.id, l.ma_lop, l.ten_lop FROM lop_hoc l JOIN lop_hoc_hoc_vien lhhv ON l.id = lhhv.lop_hoc_id WHERE lhhv.hoc_vien_id = $1", [student.id]);
+      const { rows: classes = [] } = await pool.query("SELECT l.id, l.ma_lop, l.ten_lop FROM lop_hoc l JOIN lop_hoc_hoc_vien lhhv ON l.id = lhhv.lop_hoc_id WHERE lhhv.hoc_vien_id = $1", [student.id]);
       student.cac_lop_dang_hoc = classes;
     }
     res.json({ success: true, data: students });
@@ -514,3 +527,6 @@ app.listen(PORT, () => {
   console.log(`  ATH SYSTEM - SERVER ĐANG HOẠT ĐỘNG TẠI CỔNG TRUY CẬP: ${PORT}`);
   console.log(`================================================================`);
 });
+
+// Xuất ứng dụng app Express cho môi trường Serverless (Vercel)
+module.exports = app;
