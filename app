@@ -29,8 +29,11 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Khởi tạo thư mục uploads nếu chưa tồn tại
-const uploadDir = path.join(__dirname, 'uploads');
+// Cấu hình thư mục upload tối ưu cho Vercel (môi trường serverless chỉ cho phép ghi vào /tmp)
+const uploadDir = process.env.VERCEL 
+  ? '/tmp/uploads' 
+  : path.join(__dirname, 'uploads');
+
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -522,11 +525,14 @@ app.get('/api/profile', authenticateToken, requirePermission('HO_SO', 'xem'), as
 
 
 // TỰ ĐỘNG KHỞI CHẠY SERVER LẮNG NGHE KẾT NỐI
-app.listen(PORT, () => {
-  console.log(`================================================================`);
-  console.log(`  ATH SYSTEM - SERVER ĐANG HOẠT ĐỘNG TẠI CỔNG TRUY CẬP: ${PORT}`);
-  console.log(`================================================================`);
-});
+// Chỉ lắng nghe trên PORT nếu không phải môi trường serverless (như Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`================================================================`);
+    console.log(`  ATH SYSTEM - SERVER ĐANG HOẠT ĐỘNG TẠI CỔNG TRUY CẬP: ${PORT}`);
+    console.log(`================================================================`);
+  });
+}
 
-// Xuất ứng dụng app Express cho môi trường Serverless (Vercel)
+// Xuất ứng dụng Express để Vercel có thể nhận diện và xử lý Serverless Function
 module.exports = app;
